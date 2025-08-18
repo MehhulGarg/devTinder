@@ -5,24 +5,50 @@ const userSchema = new Schema({
     firstName: {
         type: String,
         required: true,
+        minLength: 2,
     },
     lastName: {
         type: String,
+        minLength: 3,
     },
     emailId: {
         type: String,
         required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
     },
     password: {
         type: String,
         required: true,
+        minLength: 5,
     },
     age: {
         type: Number,
+        min: 18,
     },
     gender:{
         type: String,
+        validate(value){
+            if(!["male","female", "others"].includes(value.toLowerCase())){
+                throw new Error("Gender data is not valid");
+            }
+        }
+    },
+    photoUrl: {
+        type: String,
+        default: "https://imgs.search.brave.com/jV-zvG52KWzQJOcH8BD1kKuZxKWoLwMfnCQF4RGibNg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMjYv/NjE5LzE0Mi9zbWFs/bC9kZWZhdWx0LWF2/YXRhci1wcm9maWxl/LWljb24tb2Ytc29j/aWFsLW1lZGlhLXVz/ZXItcGhvdG8taW1h/Z2UtdmVjdG9yLmpw/Zw"
+    },
+    about:{
+        type: String,
+        default: "Default about me placeholder",
+    },
+    skills: {
+        type: [String],
     }
+},
+{
+    timestamps: true,
 });
 
 const User = mongoose.model("User", userSchema);
