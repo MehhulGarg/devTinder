@@ -3,19 +3,58 @@ const { adminAuth } = require("./middlewares/auth");
 const app = express();
 const { connectDB } = require("./config/database");
 const User = require("./models/user");
+const { validateSignupData } = require("./utils/validation");
+const bcrypt = require("bcrypt");
+const validator = require('validator');
 
 // it will work for every api call
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
-  const userObj = req.body;
-  // Creating a new instance of the user model
-  const user = new User(userObj);
   try {
+    // validation of data
+    validateSignupData(req);
+
+    const { firstName, lastName, emailId, password, age, gender, skills } =
+      req.body;
+    const passHash = await bcrypt.hash(password, 10);
+    console.log(passHash);
+
+    // Creating a new instance of the user model
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passHash,
+      age,
+      gender,
+      skills,
+    });
     await user.save();
     res.send("User added successfully!");
   } catch (err) {
     res.status(400).send("Error while saving the user" + err.message);
+  }
+});
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    if (!validator.isEmail(emailId)) {
+      throw new Error("Invalid email address: " + value);
+    }
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid credentials");
+    }
+    const isPassValid = await bcrypt.compare(password, user?.password);
+    if (isPassValid) {
+      res.send("Login Successful!");
+    } else {
+      throw new Error("Invalid credentials");
+    }
+  } catch (err) {
+    res.status(400).send("ERROR: " + err.message);
   }
 });
 
@@ -60,10 +99,27 @@ app.delete("/user", async (req, res) => {
 });
 
 // update data of user
-app.patch("/user", async (req, res) => {
+app.patch("/user/:userId", async (req, res) => {
   const data = req.body;
-  const userId = req.body.userId;
+  const userId = req.params?.userId;
   try {
+    const ALLOWED_UPDATES = [
+      "photoUrl",
+      "about",
+      "gender",
+      "age",
+      "skills",
+      "userId",
+    ];
+    const isUpdateAllowed = Object.keys(data).every((k) => {
+      ALLOWED_UPDATES.includes(k);
+    });
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+    if (data?.skills.length > 10) {
+      throw new Error("Skills cannot be morethan 10");
+    }
     const user = await User.findByIdAndUpdate(userId, data, {
       returnDocument: "after",
       runValidators: true,
